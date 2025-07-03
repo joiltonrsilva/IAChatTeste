@@ -3,7 +3,7 @@
 import os
 import requests
 from fastapi import APIRouter, Request
-from services.dialog_engine import handle_message  # renomeado de gerar_resposta
+from services.dialog_engine import handle_message
 from utils.logger import log_event
 
 # Carrega variáveis de ambiente Z-API
@@ -16,12 +16,27 @@ router = APIRouter(tags=["Z-API"], prefix="/zapi")
 
 @router.post("/webhook")
 async def receber_mensagem_zapi(request: Request):
+    # 0) Recebe e loga o payload cru
     payload = await request.json()
     log_event("📩 PAYLOAD BRUTO ZAPI", payload)
 
-    # 1) Checagens básicas
-    numero = payload.get("phone")
-    texto = payload.get("text", {}).get("message")
+    # 1) Extrai número e texto, suportando both formatos
+    numero = None
+    texto = None
+
+    # → Novo formato Z-API: { "messages": [ { "from": "...", "text": { "body": "..." } } ] }
+    msgs = payload.get("messages")
+    if isinstance(msgs, list) and len(msgs) > 0:
+        msg = msgs[0]
+        numero = msg.get("from")
+        texto = msg.get("text", {}).get("body")
+
+    # → Fallback legado: { "phone": "...", "text": { "message": "..." } }
+    if not numero or not texto:
+        numero = payload.get("phone") or numero
+        texto = payload.get("text", {}).get("message") or texto
+
+    # Se ainda faltar algo, rejeita
     if not numero or not texto:
         return {"ok": False, "motivo": "Payload inválido"}
 
