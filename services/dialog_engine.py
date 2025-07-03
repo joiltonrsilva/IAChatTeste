@@ -6,7 +6,7 @@ from services.intent import detectar_intencao
 from services.scheduler import processar_agendamento
 
 # Cliente OpenAI assíncrono para fallback GPT
-openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_KEY_DIALOG"))
+openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_KEY_COPY"))
 
 
 def build_multi_turn_prompt(session_history: list) -> list:
