@@ -1,3 +1,7 @@
 fastapi
-uvicorn
+uvicorn[standard]
+requests          # ← novo
 python-dotenv
+redis
+openai
+supabase-py       # se você usa o client oficial
