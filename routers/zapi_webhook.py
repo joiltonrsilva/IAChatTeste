@@ -20,7 +20,7 @@ async def receber_mensagem_zapi(request: Request):
     payload = await request.json()
     log_event("📩 PAYLOAD BRUTO ZAPI", payload)
 
-    # 1) Extrai número e texto, suportando both formatos
+    # 1) Extrai número e texto, suportando ambos formatos
     numero = None
     texto = None
 
@@ -51,8 +51,8 @@ async def receber_mensagem_zapi(request: Request):
     else:
         conteudo = str(resposta)
 
-    # 4) Envia via Z-API
-    send_url = f"{ZAPI_BASE_URL}/send-text"
+    # 4) Envia via Z-API com endpoint corrigido
+    send_url = f"{ZAPI_BASE_URL}/send-messages"  # corrigido de /send-text → /send-messages
     body = {"phone": numero, "message": conteudo}
     try:
         resp = requests.post(send_url, json=body, timeout=10)
