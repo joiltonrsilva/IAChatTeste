@@ -3,6 +3,9 @@ from typing import Optional
 import os
 from supabase import create_client, Client
 from datetime import datetime
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Captura variáveis de ambiente
 SUPABASE_URL = os.getenv("SUPABASE_URL")

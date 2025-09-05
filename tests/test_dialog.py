@@ -2,7 +2,7 @@ import os
 import pytest
 import redis
 from fastapi.testclient import TestClient
-from nora_ai.main import app
+from main import app
 
 # Configurações de teste para Redis
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")

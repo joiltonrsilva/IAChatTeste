@@ -42,15 +42,22 @@ async def gerar_resposta_fallback(phone_number: str, user_message: str) -> str:
     session = await load_session(phone_number)
     session_history = session.get("history", [])
 
+    if os.getenv('MOCK_OPENAI', '0') == '1':
+        mock_response = f'[MOCK] mensagem: {user_message}'
+        await append_message(phone_number, "assistant", mock_response)
+        return mock_response
     # Monta prompt com histórico + mensagem atual
     messages = build_multi_turn_prompt(session_history + [{"role": "user", "content": user_message}])
-    response = await openai_client.chat.completions.create(
-        model="gpt-4o",
-        messages=messages,
-        max_tokens=600,
-        temperature=0.7,
-    )
-    assistant_response = response.choices[0].message.content.strip()
+    try:
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            max_tokens=600,
+            temperature=0.7,
+        )
+        assistant_response = response.choices[0].message.content.strip()
+    except Exception as e:
+        assistant_response = f'[ERRO] {str(e)}'
 
     # Salva no histórico
     await append_message(phone_number, "assistant", assistant_response)
