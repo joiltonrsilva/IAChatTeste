@@ -1,6 +1,7 @@
 # models/lead.py
 from typing import Optional
 import os
+import json
 from supabase import create_client, Client
 from datetime import datetime
 from dotenv import load_dotenv
@@ -58,11 +59,34 @@ def create_lead(phone: str) -> dict:
 
 def update_lead(phone: str, updates: dict) -> dict:
     """
-    Atualiza um lead existente no Supabase.
+    Atualiza um lead existente no Supabase de forma segura.
+    - Converte dicionários em JSON
+    - Filtra apenas colunas existentes
     """
     updates["updated_at"] = datetime.utcnow().isoformat()
-    response = supabase.table("leads").update(updates).eq("numero", phone).execute()
-    if response.data:
-        return response.data[0]
-    else:
-        raise ValueError(f"Lead com telefone {phone} não encontrado ou falha na atualização: {response}")
+
+    # 1) Busca uma linha existente para pegar as colunas válidas
+    response = supabase.table("leads").select("*").eq("numero", phone).limit(1).execute()
+    if not response.data:
+        raise ValueError(f"Lead com telefone {phone} não encontrado.")
+
+    existing_columns = set(response.data[0].keys())
+
+    # 2) Filtra updates para apenas colunas existentes e converte dicts em JSON
+    safe_updates = {}
+    for k, v in updates.items():
+        if k in existing_columns:
+            safe_updates[k] = json.dumps(v) if isinstance(v, dict) else v
+
+    if not safe_updates:
+        raise ValueError(f"Nenhuma coluna válida para atualizar para o lead {phone}.")
+
+    # 3) Atualiza a tabela
+    try:
+        response = supabase.table("leads").update(safe_updates).eq("numero", phone).execute()
+        if response.data:
+            return response.data[0]
+        else:
+            raise ValueError(f"Falha na atualização do lead {phone}: {response}")
+    except Exception as e:
+        raise ValueError(f"Erro ao atualizar lead {phone}: {str(e)}")

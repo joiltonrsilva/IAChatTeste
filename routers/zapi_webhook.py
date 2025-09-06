@@ -2,7 +2,7 @@
 
 import os
 import requests
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Body
 from services.dialog_engine import handle_message
 from utils.logger import log_event
 
@@ -10,12 +10,13 @@ from utils.logger import log_event
 ZAPI_INSTANCE = os.getenv("ZAPI_INSTANCE", "")
 ZAPI_TOKEN = os.getenv("ZAPI_TOKEN", "")
 ZAPI_BASE_URL = f"https://api.z-api.io/instances/{ZAPI_INSTANCE}/token/{ZAPI_TOKEN}"
+MOCK_ZAPI = os.getenv("MOCK_ZAPI", "1") == "1"
 
 router = APIRouter(tags=["Z-API"], prefix="/zapi")
 
 
 @router.post("/webhook")
-async def receber_mensagem_zapi(request: Request):
+async def receber_mensagem_zapi(request: Request, body: dict = Body(...)):
     # 0) Recebe e loga o payload cru
     payload = await request.json()
     log_event("📩 PAYLOAD BRUTO ZAPI", payload)
@@ -51,14 +52,18 @@ async def receber_mensagem_zapi(request: Request):
     else:
         conteudo = str(resposta)
 
-    # 4) Envia via Z-API com endpoint corrigido
-    send_url = f"{ZAPI_BASE_URL}/send-messages"  # corrigido de /send-text → /send-messages
+    # 4) Envia via Z-API ou mock
     body = {"phone": numero, "message": conteudo}
-    try:
-        resp = requests.post(send_url, json=body, timeout=10)
-        resp.raise_for_status()
-        log_event("📤 Mensagem enviada Z-API", {"body": body, "response": resp.json()})
-    except Exception as e:
-        log_event("❌ Erro ao enviar Z-API", {"error": str(e), "body": body})
 
-    return {"ok": True}
+    if MOCK_ZAPI:
+        log_event("📤 MOCK Mensagem enviada Z-API", {"body": body})
+    else:
+        send_url = f"{ZAPI_BASE_URL}/send-messages"
+        try:
+            resp = requests.post(send_url, json=body, timeout=10)
+            resp.raise_for_status()
+            log_event("📤 Mensagem enviada Z-API", {"body": body, "response": resp.json()})
+        except Exception as e:
+            log_event("❌ Erro ao enviar Z-API", {"error": str(e), "body": body})
+
+    return {"ok": True, "mensagem_enviada": conteudo}

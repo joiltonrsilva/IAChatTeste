@@ -63,7 +63,7 @@ async def process_zapi_payload(payload: dict):
         return
 
     # 4) Etapa de produto: já preencheu
-    produto = await avaliar_produto(
+    produto = avaliar_produto(
         score=lead.get("score", 0),
         flags=lead.get("flags", []),
         historico=lead.get("historico", "")
